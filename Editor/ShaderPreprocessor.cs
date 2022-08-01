@@ -67,7 +67,7 @@ namespace UnityEditor.Rendering.Universal
         PaniniProjection = (1 << 8),
     }
 
-    internal class ShaderPreprocessor : IPreprocessShaders
+    public class ShaderPreprocessor : IPreprocessShaders
     {
         public static readonly string kPassNameGBuffer = "GBuffer";
         public static readonly string kTerrainShaderName = "Universal Render Pipeline/Terrain/Lit";
@@ -139,6 +139,8 @@ namespace UnityEditor.Rendering.Universal
 
         int m_TotalVariantsInputCount;
         int m_TotalVariantsOutputCount;
+
+		public static System.Func<Shader ,ShaderSnippetData, ShaderCompilerData , bool> IsHandledFunc;
 
         // Multiple callback may be implemented.
         // The first one executed is the one where callbackOrder is returning the smallest number.
@@ -685,7 +687,15 @@ namespace UnityEditor.Rendering.Universal
             {
                 bool removeInput = true;
 
-                foreach (var supportedFeatures in ShaderBuildPreprocessor.supportedFeaturesList)
+
+				if (IsHandledFunc != null && IsHandledFunc(shader, snippetData, compilerDataList[i]))
+				{
+					++i;
+					continue;
+				}
+
+
+				foreach (var supportedFeatures in ShaderBuildPreprocessor.supportedFeaturesList)
                 {
                     if (!StripUnused(supportedFeatures, shader, snippetData, compilerDataList[i]))
                     {

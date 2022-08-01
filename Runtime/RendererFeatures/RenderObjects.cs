@@ -32,6 +32,8 @@ namespace UnityEngine.Experimental.Rendering.Universal
             public StencilStateData stencilSettings = new StencilStateData();
 
             public CustomCameraSettings cameraSettings = new CustomCameraSettings();
+
+			public bool clearDepth = false;
         }
 
         [System.Serializable]
@@ -87,6 +89,8 @@ namespace UnityEngine.Experimental.Rendering.Universal
                 renderObjectsPass.SetStencilState(settings.stencilSettings.stencilReference,
                     settings.stencilSettings.stencilCompareFunction, settings.stencilSettings.passOperation,
                     settings.stencilSettings.failOperation, settings.stencilSettings.zFailOperation);
+
+			renderObjectsPass.clearDepth = settings.clearDepth;
         }
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)

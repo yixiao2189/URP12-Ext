@@ -24,6 +24,8 @@ namespace UnityEngine.Experimental.Rendering.Universal
             m_RenderStateBlock.depthState = new DepthState(writeEnabled, function);
         }
 
+		public bool clearDepth { get; set; }
+
         public void SetStencilState(int reference, CompareFunction compareFunction, StencilOp passOp, StencilOp failOp, StencilOp zFailOp)
         {
             StencilState stencilState = StencilState.defaultValue;
@@ -134,6 +136,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Clear();
 
+
                     // Render the objects...
                     context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock);
                 }
@@ -143,7 +146,17 @@ namespace UnityEngine.Experimental.Rendering.Universal
                     RenderingUtils.SetViewAndProjectionMatrices(cmd, cameraData.GetViewMatrix(), cameraData.GetGPUProjectionMatrix(), false);
                 }
             }
-            context.ExecuteCommandBuffer(cmd);
+		
+			if (clearDepth)
+			{
+				ConfigureClear(ClearFlag.Depth, Color.black);
+				//CoreUtils.SetRenderTarget(cmd, cameraData.renderer.cameraColorTarget,  ClearFlag.Depth);
+				//CoreUtils.SetRenderTarget(cmd, cameraData.renderer.cameraColorTarget, ClearFlag.Color | ClearFlag.Depth,Color.black);// BuiltinRenderTextureType.CameraTarget
+			}
+		
+			context.ExecuteCommandBuffer(cmd);
+
+
             CommandBufferPool.Release(cmd);
         }
     }

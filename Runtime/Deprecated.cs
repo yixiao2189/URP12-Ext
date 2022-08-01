@@ -52,7 +52,7 @@ namespace UnityEngine.Rendering.Universal
             throw new NotSupportedException(k_ErrorMessage);
         }
 
-        internal override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd)
+        internal override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew)
         {
             throw new NotImplementedException();
         }

@@ -39,7 +39,9 @@ namespace UnityEditor.Experimental.Rendering.Universal
             public static GUIContent cameraFOV = new GUIContent("Field Of View", "The camera's view angle measured in degrees along vertical axis.");
             public static GUIContent positionOffset = new GUIContent("Position Offset", "Position offset to apply to the original camera's position.");
             public static GUIContent restoreCamera = new GUIContent("Restore", "Restore to the original camera matrices after the execution of the render passes added by this feature.");
-        }
+
+			public static GUIContent clearDepth = new GUIContent("Depth Clear", "Clear Depth(Z)");
+		}
 
         //Headers and layout
         private HeaderBool m_FiltersFoldout;
@@ -72,6 +74,7 @@ namespace UnityEditor.Experimental.Rendering.Universal
         private SerializedProperty m_FOV;
         private SerializedProperty m_CameraOffset;
         private SerializedProperty m_RestoreCamera;
+		private SerializedProperty m_ClearDepth;
 
         private List<SerializedObject> m_properties = new List<SerializedObject>();
 
@@ -126,7 +129,10 @@ namespace UnityEditor.Experimental.Rendering.Universal
             m_CameraOffset = m_CameraSettings.FindPropertyRelative("offset");
             m_RestoreCamera = m_CameraSettings.FindPropertyRelative("restoreCamera");
 
-            m_properties.Add(property.serializedObject);
+			m_ClearDepth = property.FindPropertyRelative("clearDepth");
+
+
+			m_properties.Add(property.serializedObject);
         }
 
         public override void OnGUI(Rect rect, SerializedProperty property, GUIContent label)
@@ -154,7 +160,12 @@ namespace UnityEditor.Experimental.Rendering.Universal
                 m_Callback.intValue = selectedValue;
             rect.y += Styles.defaultLineSpace;
 
-            DoFilters(ref rect);
+	
+			//Depth testing options
+			EditorGUI.PropertyField(rect, m_ClearDepth, Styles.clearDepth);
+			rect.y += Styles.defaultLineSpace;
+
+			DoFilters(ref rect);
 
             m_RenderFoldout.value = EditorGUI.Foldout(rect, m_RenderFoldout.value, Styles.renderHeader, true);
             SaveHeaderBool(m_RenderFoldout);
