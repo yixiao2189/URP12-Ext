@@ -36,12 +36,20 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 GetActiveDebugHandler(renderingData)?.UpdateShaderGlobalPropertiesForFinalValidationPass(cmd, ref cameraData, true);
 
-                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,
+                if (cameraData.hasGammaUI)
+                {
+                    CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, true);
+                    CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, false);
+                }
+                else
+                {
+                    CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,
                     cameraData.requireSrgbConversion);
+                }
 
-	
-				RenderTargetBufferSystem.ApplyScale(ref cameraData);
-
+               
+				if(cameraData.splitResolution)
+					RenderTargetBufferSystem.ApplyScale(ref cameraData);
 				RenderTargetIdentifier cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd, true);
 
 
@@ -56,6 +64,11 @@ namespace UnityEngine.Rendering.Universal.Internal
 
 				cameraData.renderer.SwapColorBuffer(cmd);
 
+                if (cameraData.hasGammaUI)
+                {
+                    CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, false);
+                    CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, false);
+                }
 			}
 
             context.ExecuteCommandBuffer(cmd);

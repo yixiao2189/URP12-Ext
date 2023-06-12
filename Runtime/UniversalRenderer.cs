@@ -32,7 +32,7 @@ namespace UnityEngine.Rendering.Universal
     /// This renderer is supported on all Universal RP supported platforms.
     /// It uses a classic forward rendering strategy with per-object light culling.
     /// </summary>
-    public sealed class UniversalRenderer : ScriptableRenderer
+    public sealed partial class UniversalRenderer : ScriptableRenderer
     {
         const int k_DepthStencilBufferBits = 32;
         static readonly List<ShaderTagId> k_DepthNormalsOnly = new List<ShaderTagId> { new ShaderTagId("DepthNormalsOnly") };
@@ -155,6 +155,9 @@ namespace UnityEngine.Rendering.Universal
             m_DefaultStencilState.SetPassOperation(stencilData.passOperation);
             m_DefaultStencilState.SetFailOperation(stencilData.failOperation);
             m_DefaultStencilState.SetZFailOperation(stencilData.zFailOperation);
+
+			customCopyDepth = data.customCopyDepth;
+			customCopyDepthEvent = data.customCopyDepthEvent;
 
             m_IntermediateTextureMode = data.intermediateTextureMode;
 
@@ -304,6 +307,8 @@ namespace UnityEngine.Rendering.Universal
             LensFlareCommonSRP.mergeNeeded = 0;
             LensFlareCommonSRP.maxLensFlareWithOcclusionTemporalSample = 1;
             LensFlareCommonSRP.Initialize();
+            
+            InitEx(data);
         }
 
         /// <inheritdoc />
@@ -324,6 +329,8 @@ namespace UnityEngine.Rendering.Universal
             Blitter.Cleanup();
 
             LensFlareCommonSRP.Dispose();
+            
+            DisposeEx();
         }
 
         private void SetupFinalPassDebug(ref CameraData cameraData)
@@ -490,13 +497,16 @@ namespace UnityEngine.Rendering.Universal
                     // Do depth copy before the render pass that requires depth texture as shader read resource
                     copyDepthPassEvent = (RenderPassEvent)Mathf.Min((int)RenderPassEvent.AfterRenderingTransparents, ((int)renderPassInputs.requiresDepthTextureEarliestEvent) - 1);
                 }
+				if (customCopyDepth)
+					copyDepthPassEvent = customCopyDepthEvent;
                 m_CopyDepthPass.renderPassEvent = copyDepthPassEvent;
             }
             else if (cameraHasPostProcessingWithDepth || isSceneViewCamera || isGizmosEnabled)
-            {
-                // If only post process requires depth texture, we can re-use depth buffer from main geometry pass instead of enqueuing a depth copy pass, but no proper API to do that for now, so resort to depth copy pass for now
-                m_CopyDepthPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
+			{
+				// If only post process requires depth texture, we can re-use depth buffer from main geometry pass instead of enqueuing a depth copy pass, but no proper API to do that for now, so resort to depth copy pass for now
+				m_CopyDepthPass.renderPassEvent = customCopyDepth ? customCopyDepthEvent : RenderPassEvent.AfterRenderingTransparents;
             }
+	
 
            
             createColorTexture |= RequiresIntermediateColorTexture(ref cameraData);
@@ -562,7 +572,7 @@ namespace UnityEngine.Rendering.Universal
             }
             else
             {
-                if (isRenderTargetNull && !isSceneViewCamera && cameraData.renderScale < RenderTargetBufferSystem.overlayMinScale)
+                if (cameraData.splitResolution)
                 {
                     CreateFinalDepthTarget(context,ref renderingData.cameraData);
                 }
@@ -872,6 +882,10 @@ namespace UnityEngine.Rendering.Universal
                 postProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, false, m_ActiveCameraDepthAttachment, colorGradingLut, false, false, true);
                 EnqueuePass(postProcessPass);
             }
+            else if (cameraData.hasGammaUI || cameraData.splitResolution && cameraData.renderType == CameraRenderType.Base)
+            {
+                EnqueuePass(m_CopySceneFinalPass);
+            }
 
 #if UNITY_EDITOR
             if (isSceneViewCamera || (isGizmosEnabled && lastCameraInTheStack))
@@ -882,12 +896,9 @@ namespace UnityEngine.Rendering.Universal
                 EnqueuePass(m_FinalDepthCopyPass);
             }
 #endif
-
-            
-            if (isRenderTargetNull && !isSceneViewCamera && cameraData.renderScale < RenderTargetBufferSystem.overlayMinScale && cameraData.renderType == CameraRenderType.Base && !lastCameraInTheStack)
-            {
-                EnqueuePass(m_CopySceneFinalPass);
-            }
+		
+			
+			SetupEx(context, ref renderingData);
         }
 
         /// <inheritdoc />
@@ -1079,8 +1090,14 @@ namespace UnityEngine.Rendering.Universal
                     var depthDescriptor = descriptor;
                     depthDescriptor.useMipMap = false;
                     depthDescriptor.autoGenerateMips = false;
-                    depthDescriptor.bindMS = depthDescriptor.msaaSamples > 1 && !SystemInfo.supportsMultisampleAutoResolve && (SystemInfo.supportsMultisampledTextures != 0);
+                    
+                    depthDescriptor.bindMS = depthDescriptor.msaaSamples > 1 && (SystemInfo.supportsMultisampledTextures != 0);
 
+                    // binding MS surfaces is not supported by the GLES backend, and it won't be fixed after investigating
+                    // the high performance impact of potential fixes, which would make it more expensive than depth prepass (fogbugz 1339401 for more info)
+                    if (IsGLESDevice())
+	                    depthDescriptor.bindMS = false;
+                    
                     depthDescriptor.colorFormat = RenderTextureFormat.Depth;
                     depthDescriptor.depthBufferBits = k_DepthStencilBufferBits;
                     cmd.GetTemporaryRT(m_ActiveCameraDepthAttachment.id, depthDescriptor, FilterMode.Point);
@@ -1108,9 +1125,9 @@ namespace UnityEngine.Rendering.Universal
                     descriptor.autoGenerateMips = false;
                     descriptor.depthBufferBits = k_DepthStencilBufferBits;
                     descriptor.colorFormat = RenderTextureFormat.Depth;
-                    cmd.GetTemporaryRT(m_ActiveCameraDepthAttachment.id, descriptor, FilterMode.Point);
+                    cmd.GetTemporaryRT(m_SceneFinalDepthAttachment.id, descriptor, FilterMode.Point);
 
-					m_SceneFinalDepthAttachment = m_ActiveCameraDepthAttachment;
+	
 
 				}
 
@@ -1187,6 +1204,11 @@ namespace UnityEngine.Rendering.Universal
                 !isCompatibleBackbufferTextureDimension || isCapturing || cameraData.requireSrgbConversion;
         }
 
+        bool IsGLESDevice()
+        {
+            return SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES2 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3;
+        }
+
         bool CanCopyDepth(ref CameraData cameraData)
         {
             bool msaaEnabledForCamera = cameraData.cameraTargetDescriptor.msaaSamples > 1;
@@ -1197,13 +1219,13 @@ namespace UnityEngine.Rendering.Universal
             bool msaaDepthResolve = msaaEnabledForCamera && SystemInfo.supportsMultisampledTextures != 0;
 
             // copying depth on GLES3 is giving invalid results. Needs investigation (Fogbugz issue 1339401)
-            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3)
+            if (IsGLESDevice())
                 return false;
 
             return supportsDepthCopy || msaaDepthResolve;
         }
 
-        internal override void SwapColorBuffer(CommandBuffer cmd)
+        public override void SwapColorBuffer(CommandBuffer cmd)
         {
             m_ColorBufferSystem.Swap();
 
@@ -1218,7 +1240,7 @@ namespace UnityEngine.Rendering.Universal
             cmd.SetGlobalTexture("_AfterPostProcessTexture", m_ActiveCameraColorAttachment.id);
         }
 
-        internal override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
+        public override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
         {
             return m_ColorBufferSystem.GetFrontBuffer(cmd,makeNew).id;
         }

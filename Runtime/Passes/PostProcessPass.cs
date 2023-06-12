@@ -18,7 +18,7 @@ namespace UnityEngine.Rendering.Universal.Internal
     /// <summary>
     /// Renders the post-processing effect stack.
     /// </summary>
-    public class PostProcessPass : ScriptableRenderPass
+    public partial class PostProcessPass : ScriptableRenderPass
     {
         RenderTextureDescriptor m_Descriptor;
         RenderTargetIdentifier m_Source;
@@ -566,13 +566,32 @@ namespace UnityEngine.Rendering.Universal.Internal
                 // With camera stacking we not always resolve post to final screen as we might run post-processing in the middle of the stack.
                 if (m_UseSwapBuffer)
                 {
-                    cameraTarget = (m_ResolveToScreen) ? cameraTarget : targetDestination;
-                }
+					if (!m_ResolveToScreen)
+					{
+						cameraTarget = targetDestination;
+
+						if (cameraData.renderType == CameraRenderType.Base && (cameraData.hasGammaUI || cameraData.splitResolution))
+						{
+							m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+							m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+
+							RenderTargetBufferSystem.ApplyScale(ref cameraData);
+							cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd, true);
+						}
+					}                    
+	
+				}
                 else
                 {
                     cameraTarget = (m_Destination == RenderTargetHandle.CameraTarget) ? cameraTarget : m_Destination.Identifier();
                     m_ResolveToScreen = cameraData.resolveFinalTarget || (m_Destination == cameraTargetHandle || m_HasFinalPass == true);
                 }
+
+				if (m_ResolveToScreen && cameraData.gammmaUICamera)
+				{
+					m_Materials.uber.DisableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+					m_Materials.uber.EnableKeyword(ShaderKeywordStrings.SRGBToLinearConversion); 
+				}
 
 #if ENABLE_VR && ENABLE_XR_MODULE
                 if (cameraData.xr.enabled)
@@ -1128,14 +1147,14 @@ namespace UnityEngine.Rendering.Universal.Internal
         void SetupBloom(CommandBuffer cmd, RenderTargetIdentifier source, Material uberMaterial)
         {
             // Start at half-res
-            int tw = m_Descriptor.width >> 1;
-            int th = m_Descriptor.height >> 1;
+            int tw = m_Descriptor.width >> 2;
+            int th = m_Descriptor.height >> 2;
 
             // Determine the iteration count
             int maxSize = Mathf.Max(tw, th);
             int iterations = Mathf.FloorToInt(Mathf.Log(maxSize, 2f) - 1);
             iterations -= m_Bloom.skipIterations.value;
-            int mipCount = Mathf.Clamp(iterations, 1, k_MaxPyramidSize);
+            int mipCount = Mathf.Clamp(iterations, 1, 4);
 
             // Pre-filtering parameters
             float clamp = m_Bloom.clamp.value;

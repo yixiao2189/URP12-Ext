@@ -118,7 +118,10 @@ namespace UnityEditor.Rendering.Universal
                 CED.Group(
                     CameraUI.Rendering.Drawer_Rendering_CullingMask,
                     CameraUI.Rendering.Drawer_Rendering_OcclusionCulling
-                )
+                ),
+                CED.Group(
+	                UniversalRenderPipelineCameraEditor.DrawRenderSettingsEx
+	                )
             );
 
             public static readonly CED.IDrawer DrawerPreset = CED.FoldoutGroup(

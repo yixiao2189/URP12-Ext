@@ -316,7 +316,7 @@ namespace UnityEngine.Rendering.Universal
                 return;
             }
 
-            InitializeCameraData(camera, additionalCameraData, true, out var cameraData);
+            InitializeCameraData(camera, additionalCameraData, true,false, out var cameraData);
 #if ADAPTIVE_PERFORMANCE_2_0_0_OR_NEWER
             if (asset.useAdaptivePerformance)
                 ApplyAdaptivePerformance(ref cameraData);
@@ -456,7 +456,7 @@ namespace UnityEngine.Rendering.Universal
             List<Camera> cameraStack = (supportsCameraStacking) ? baseCameraAdditionalData?.cameraStack : null;
 
             bool anyPostProcessingEnabled = baseCameraAdditionalData != null && baseCameraAdditionalData.renderPostProcessing;
-
+			bool hasGammaUI = false;
             // We need to know the last active camera in the stack to be able to resolve
             // rendering to screen when rendering it. The last camera in the stack is not
             // necessarily the last active one as it users might disable it.
@@ -498,6 +498,8 @@ namespace UnityEngine.Rendering.Universal
 
                         anyPostProcessingEnabled |= data.renderPostProcessing;
                         lastActiveOverlayCameraIndex = i;
+
+						hasGammaUI |= data.ColorSpaceUsage == ColorSpace.Gamma && data.renderType == CameraRenderType.Overlay;
                     }
                 }
                 if (shouldUpdateCameraStack)
@@ -532,7 +534,7 @@ namespace UnityEngine.Rendering.Universal
             }
             // Update volumeframework before initializing additional camera data
             UpdateVolumeFramework(baseCamera, baseCameraAdditionalData);
-            InitializeCameraData(baseCamera, baseCameraAdditionalData, !isStackedRendering, out var baseCameraData);
+            InitializeCameraData(baseCamera, baseCameraAdditionalData, !isStackedRendering, hasGammaUI,out var baseCameraData);
             RenderTextureDescriptor originalTargetDesc = baseCameraData.cameraTargetDescriptor;
 
 #if ENABLE_VR && ENABLE_XR_MODULE
@@ -599,7 +601,7 @@ namespace UnityEngine.Rendering.Universal
                         VFX.VFXManager.PrepareCamera(currCamera);
 #endif
                         UpdateVolumeFramework(currCamera, currCameraData);
-                        InitializeAdditionalCameraData(currCamera, currCameraData, lastCamera, ref overlayCameraData);
+                        InitializeAdditionalCameraData(currCamera, currCameraData, lastCamera, false,ref overlayCameraData);
 #if ENABLE_VR && ENABLE_XR_MODULE
                         if (baseCameraData.xr.enabled)
                             m_XRSystem.UpdateFromCamera(ref overlayCameraData.xr, overlayCameraData);
@@ -720,13 +722,13 @@ namespace UnityEngine.Rendering.Universal
 #endif
         }
 
-        static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData)
+        static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget,bool hasGammaUI, out CameraData cameraData)
         {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeCameraData);
 
             cameraData = new CameraData();
             InitializeStackedCameraData(camera, additionalCameraData, ref cameraData);
-            InitializeAdditionalCameraData(camera, additionalCameraData, resolveFinalTarget, ref cameraData);
+            InitializeAdditionalCameraData(camera, additionalCameraData, resolveFinalTarget, hasGammaUI, ref cameraData);
 
             ///////////////////////////////////////////////////////////////////
             // Descriptor settings                                            /
@@ -870,7 +872,7 @@ namespace UnityEngine.Rendering.Universal
         /// <param name="additionalCameraData">Additional camera data component to initialize settings from.</param>
         /// <param name="resolveFinalTarget">True if this is the last camera in the stack and rendering should resolve to camera target.</param>
         /// <param name="cameraData">Settings to be initilized.</param>
-        static void InitializeAdditionalCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, ref CameraData cameraData)
+        static void InitializeAdditionalCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget,bool hasGammaUI, ref CameraData cameraData)
         {
             using var profScope = new ProfilingScope(null, Profiling.Pipeline.initializeAdditionalCameraData);
 
@@ -954,6 +956,8 @@ namespace UnityEngine.Rendering.Universal
             cameraData.SetViewAndProjectionMatrix(camera.worldToCameraMatrix, projectionMatrix);
 
             cameraData.worldSpaceCameraPos = camera.transform.position;
+            
+            InitializeAdditionalCameraDataEx(additionalCameraData,hasGammaUI, ref cameraData);
         }
 
         static void InitializeRenderingData(UniversalRenderPipelineAsset settings, ref CameraData cameraData, ref CullingResults cullResults,

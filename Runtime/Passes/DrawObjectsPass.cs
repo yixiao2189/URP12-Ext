@@ -23,7 +23,37 @@ namespace UnityEngine.Rendering.Universal.Internal
 
         static readonly int s_DrawObjectPassDataPropID = Shader.PropertyToID("_DrawObjectPassData");
 
-        public DrawObjectsPass(string profilerTag, ShaderTagId[] shaderTagIds, bool opaque, RenderPassEvent evt, RenderQueueRange renderQueueRange, LayerMask layerMask, StencilState stencilState, int stencilReference)
+		public Material overrideMaterial { get; set; }
+		public int overrideMaterialPassIndex { get; set; }
+
+		public static bool normalOff { get; set; } = false;
+
+		public static bool envReflectionOff { get; set; } = false;
+
+		public static bool recvShadowOff { get; set; } = false;
+
+		public void SetDetphState(bool writeEnabled, CompareFunction function = CompareFunction.Less)
+		{
+			m_RenderStateBlock.mask |= RenderStateMask.Depth;
+			m_RenderStateBlock.depthState = new DepthState(writeEnabled, function);
+		}
+
+		public void SetStencilState(int reference, CompareFunction compareFunction, StencilOp passOp, StencilOp failOp, StencilOp zFailOp)
+		{
+			StencilState stencilState = StencilState.defaultValue;
+			stencilState.enabled = true;
+			stencilState.SetCompareFunction(compareFunction);
+			stencilState.SetPassOperation(passOp);
+			stencilState.SetFailOperation(failOp);
+			stencilState.SetZFailOperation(zFailOp);
+
+			m_RenderStateBlock.mask |= RenderStateMask.Stencil;
+			m_RenderStateBlock.stencilReference = reference;
+			m_RenderStateBlock.stencilState = stencilState;
+		}
+
+
+		public DrawObjectsPass(string profilerTag, ShaderTagId[] shaderTagIds, bool opaque, RenderPassEvent evt, RenderQueueRange renderQueueRange, LayerMask layerMask, StencilState stencilState, int stencilReference)
         {
             base.profilingSampler = new ProfilingSampler(nameof(DrawObjectsPass));
 
@@ -70,8 +100,10 @@ namespace UnityEngine.Rendering.Universal.Internal
             }
         }
 
-        /// <inheritdoc/>
-        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+
+
+		/// <inheritdoc/>
+		public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             // NOTE: Do NOT mix ProfilingScope with named CommandBuffers i.e. CommandBufferPool.Get("name").
             // Currently there's an issue which results in mismatched markers.
@@ -94,10 +126,47 @@ namespace UnityEngine.Rendering.Universal.Internal
                     : new Vector4(flipSign, 0.0f, 1.0f, 1.0f);
                 cmd.SetGlobalVector(ShaderPropertyId.scaleBiasRt, scaleBias);
 
-                context.ExecuteCommandBuffer(cmd);
+	
+
+				context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
-                Camera camera = renderingData.cameraData.camera;
+
+				if (normalOff)
+				{
+					cmd.EnableShaderKeyword("_NORMALMAP_OFF");
+				}
+				else
+				{
+					cmd.DisableShaderKeyword("_NORMALMAP_OFF");
+				}
+
+
+
+				if (envReflectionOff)
+				{
+					cmd.EnableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+				}
+				else
+				{
+					cmd.DisableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+				}
+
+
+				if (recvShadowOff)
+				{
+					cmd.EnableShaderKeyword("_RECEIVE_SHADOWS_OFF");
+				}
+				else
+				{
+					cmd.DisableShaderKeyword("_RECEIVE_SHADOWS_OFF");
+				}
+
+				//TODO:透明的
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, renderingData.cameraData.gammmaUICamera);
+		
+
+				Camera camera = renderingData.cameraData.camera;
                 var sortFlags = (m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 if (renderingData.cameraData.renderer.useDepthPriming && m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
                     sortFlags = SortingCriteria.SortingLayer | SortingCriteria.RenderQueue | SortingCriteria.OptimizeStateChanges | SortingCriteria.CanvasOrder;
@@ -113,6 +182,8 @@ namespace UnityEngine.Rendering.Universal.Internal
 #endif
 
                 DrawingSettings drawSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortFlags);
+				drawSettings.overrideMaterial = overrideMaterial;
+				drawSettings.overrideMaterialPassIndex = overrideMaterialPassIndex;
 
                 var activeDebugHandler = GetActiveDebugHandler(renderingData);
                 if (activeDebugHandler != null)

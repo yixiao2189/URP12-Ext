@@ -7,7 +7,7 @@
 
 #define MAX_SHADOW_CASCADES 4
 
-#if !defined(_RECEIVE_SHADOWS_OFF)
+#if !defined(_RECEIVE_SHADOWS_OFF) || defined(_FORCE_RECV_SHADOWS)
     #if defined(_MAIN_LIGHT_SHADOWS) || defined(_MAIN_LIGHT_SHADOWS_CASCADE) || defined(_MAIN_LIGHT_SHADOWS_SCREEN)
         #define MAIN_LIGHT_CALCULATE_SHADOWS
 

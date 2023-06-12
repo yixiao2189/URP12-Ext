@@ -361,7 +361,7 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         /// <param name="cmd"></param>
         /// <returns></returns>
-        virtual internal RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
+        virtual public RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
         {
             return 0;
         }
@@ -1338,7 +1338,7 @@ namespace UnityEngine.Rendering.Universal
             CoreUtils.SetRenderTarget(cmd, colorAttachments, depthAttachment, clearFlag, clearColor);
         }
 
-        internal virtual void SwapColorBuffer(CommandBuffer cmd) { }
+        public virtual void SwapColorBuffer(CommandBuffer cmd) { }
         internal virtual void EnableSwapBufferMSAA(bool enable) { }
 
         [Conditional("UNITY_EDITOR")]

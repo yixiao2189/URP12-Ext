@@ -12,7 +12,7 @@ namespace UnityEditor.Rendering.Universal
 
     [CustomEditorForRenderPipeline(typeof(Camera), typeof(UniversalRenderPipelineAsset))]
     [CanEditMultipleObjects]
-    class UniversalRenderPipelineCameraEditor : CameraEditor
+    partial  class UniversalRenderPipelineCameraEditor : CameraEditor
     {
         ReorderableList m_LayerList;
 
@@ -36,6 +36,8 @@ namespace UnityEditor.Rendering.Universal
             m_OutputWarningCameras.Clear();
 
             UpdateCameras();
+
+            InitEx(m_SerializedCamera.serializedAdditionalDataObject);
         }
 
         void UpdateCameras()

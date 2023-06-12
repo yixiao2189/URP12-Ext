@@ -185,7 +185,7 @@ namespace UnityEngine.Rendering.Universal
         internal bool DuplicateFeatureCheck(Type type)
         {
             var isSingleFeature = type.GetCustomAttribute(typeof(DisallowMultipleRendererFeature));
-            return isSingleFeature != null && m_RendererFeatures.Select(renderFeature => renderFeature.GetType()).Any(t => t == type);
+            return isSingleFeature != null && m_RendererFeatures.Select(renderFeature => renderFeature?.GetType()).Any(t => t == type);
         }
 
         private static object GetUnusedAsset(ref List<long> usedIds, ref Dictionary<long, object> assets)

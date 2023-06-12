@@ -38,8 +38,12 @@ namespace UnityEngine.Rendering.Universal.Internal
 
 		public static void ApplyScale(ref CameraData cameraData)
 		{
-			m_Desc.width =  (int)(cameraData.pixelRect.width * Mathf.Max(cameraData.renderScale, overlayMinScale));
-			m_Desc.height =(int)(cameraData.pixelRect.height * Mathf.Max(cameraData.renderScale, overlayMinScale));
+			int width = (int)(cameraData.pixelRect.width * Mathf.Max(cameraData.renderScale, overlayMinScale));
+			int height = (int)(cameraData.pixelRect.height * Mathf.Max(cameraData.renderScale, overlayMinScale));
+			if (width == m_Desc.width && m_Desc.height == height)
+				return;
+			m_Desc.width = width;
+			m_Desc.height = height;
 	
 
 			m_needUpdateA = true;

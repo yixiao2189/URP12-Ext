@@ -93,7 +93,9 @@ namespace UnityEngine.Rendering.Universal
         [SerializeField] TileSize m_TileSize = k_DefaultTileSize;
         [SerializeField] IntermediateTextureMode m_IntermediateTextureMode = IntermediateTextureMode.Always;
 
-        protected override ScriptableRenderer Create()
+		public RenderPassEvent customCopyDepthEvent;
+		public bool customCopyDepth = false;
+		protected override ScriptableRenderer Create()
         {
             if (!Application.isPlaying)
             {

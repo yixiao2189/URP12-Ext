@@ -13,6 +13,12 @@ namespace UnityEngine.Experimental.Rendering.Universal
         string m_ProfilerTag;
         ProfilingSampler m_ProfilingSampler;
 
+        public static bool normalOff { get; set; } = false;
+
+        public static bool envReflectionOff { get; set; } = false;
+
+        public static bool recvShadowOff { get; set; } = false;
+
         public Material overrideMaterial { get; set; }
         public int overrideMaterialPassIndex { get; set; }
 
@@ -91,7 +97,8 @@ namespace UnityEngine.Experimental.Rendering.Universal
 
             ref CameraData cameraData = ref renderingData.cameraData;
             Camera camera = cameraData.camera;
-
+            //支持自定义RenderObjectPass支持gamma空间
+           
             // In case of camera stacking we need to take the viewport rect from base camera
             Rect pixelRect = renderingData.cameraData.pixelRect;
             float cameraAspect = (float)pixelRect.width / (float)pixelRect.height;
@@ -99,6 +106,12 @@ namespace UnityEngine.Experimental.Rendering.Universal
             // NOTE: Do NOT mix ProfilingScope with named CommandBuffers i.e. CommandBufferPool.Get("name").
             // Currently there's an issue which results in mismatched markers.
             CommandBuffer cmd = CommandBufferPool.Get();
+
+            if (cameraData.gammmaUICamera)
+            {
+	            cmd.EnableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+	            cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+            }
             using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
                 if (m_CameraSettings.overrideCamera)
@@ -119,6 +132,37 @@ namespace UnityEngine.Experimental.Rendering.Universal
 
                         RenderingUtils.SetViewAndProjectionMatrices(cmd, viewMatrix, projectionMatrix, false);
                     }
+                }
+
+
+                if (normalOff)
+                {
+                    cmd.EnableShaderKeyword("_NORMALMAP_OFF");
+                }
+                else
+                {
+                    cmd.DisableShaderKeyword("_NORMALMAP_OFF");
+                }
+
+
+
+                if (envReflectionOff)
+                {
+                    cmd.EnableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                }
+                else
+                {
+                    cmd.DisableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                }
+
+
+                if (recvShadowOff)
+                {
+                    cmd.EnableShaderKeyword("_RECEIVE_SHADOWS_OFF");
+                }
+                else
+                {
+                    cmd.DisableShaderKeyword("_RECEIVE_SHADOWS_OFF");
                 }
 
                 var activeDebugHandler = GetActiveDebugHandler(renderingData);
@@ -150,9 +194,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
 			if (clearDepth)
 			{
 				ConfigureClear(ClearFlag.Depth, Color.black);
-				//CoreUtils.SetRenderTarget(cmd, cameraData.renderer.cameraColorTarget,  ClearFlag.Depth);
-				//CoreUtils.SetRenderTarget(cmd, cameraData.renderer.cameraColorTarget, ClearFlag.Color | ClearFlag.Depth,Color.black);// BuiltinRenderTextureType.CameraTarget
-			}
+            }
 		
 			context.ExecuteCommandBuffer(cmd);
 

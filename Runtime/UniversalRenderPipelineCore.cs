@@ -246,9 +246,14 @@ namespace UnityEngine.Rendering.Universal
         /// Camera position in world space.
         /// </summary>
         public Vector3 worldSpaceCameraPos;
-    }
 
-    public struct ShadowData
+		//for Custom
+		public bool gammmaUICamera;
+		public bool hasGammaUI;
+		public bool splitResolution;
+	}
+
+	public struct ShadowData
     {
         public bool supportsMainLightShadows;
         [Obsolete("Obsolete, this feature was replaced by new 'ScreenSpaceShadows' renderer feature")]
@@ -308,7 +313,7 @@ namespace UnityEngine.Rendering.Universal
         public uint layerMask;
     }
 
-    internal static class ShaderPropertyId
+    public static partial class ShaderPropertyId
     {
         public static readonly int glossyEnvironmentColor = Shader.PropertyToID("_GlossyEnvironmentColor");
         public static readonly int subtractiveShadowColor = Shader.PropertyToID("_SubtractiveShadowColor");
@@ -373,7 +378,7 @@ namespace UnityEngine.Rendering.Universal
         public bool useFastSRGBLinearConversion;
     }
 
-    public static class ShaderKeywordStrings
+    public static partial class ShaderKeywordStrings
     {
         public static readonly string MainLightShadows = "_MAIN_LIGHT_SHADOWS";
         public static readonly string MainLightShadowCascades = "_MAIN_LIGHT_SHADOWS_CASCADE";
