@@ -94,7 +94,6 @@ namespace UnityEngine.Rendering.Universal
         RenderTargetHandle m_SceneFinalDepthAttachment;
 
         RenderTargetHandle m_ActiveCameraColorAttachment;
-        RenderTargetHandle m_ColorFrontBuffer;
         RenderTargetHandle m_ActiveCameraDepthAttachment;
         RenderTargetHandle m_CameraDepthAttachment;
         RenderTargetHandle m_DepthTexture;
@@ -573,13 +572,15 @@ namespace UnityEngine.Rendering.Universal
             else
             {
                 if (cameraData.splitResolution)
-                {
-                    CreateFinalDepthTarget(context,ref renderingData.cameraData);
+                { 
+                    CreateFinalDepthTarget(context, ref renderingData.cameraData);
+                    cameraTargetDescriptor.width = RenderTargetBufferSystem.m_Desc.width;
+                    cameraTargetDescriptor.height = RenderTargetBufferSystem.m_Desc.height;
                 }
                 else
                 {
                     m_ActiveCameraColorAttachment = m_ColorBufferSystem.GetBackBuffer();
-                    m_ActiveCameraDepthAttachment = m_CameraDepthAttachment;
+                    m_ActiveCameraDepthAttachment =  m_CameraDepthAttachment;
                 }
             }
 
@@ -747,7 +748,8 @@ namespace UnityEngine.Rendering.Universal
                 if (this.actualRenderingMode == RenderingMode.Deferred && !useRenderPassEnabled)
                     m_CopyDepthPass.AllocateRT = false; // m_DepthTexture is already allocated by m_GBufferCopyDepthPass but it's not called when using RenderPass API.
 
-                EnqueuePass(m_CopyDepthPass);
+				if(cameraData.targetTexture == null)
+					EnqueuePass(m_CopyDepthPass);
             }
 
             // For Base Cameras: Set the depth texture to the far Z if we do not have a depth prepass or copy depth
@@ -1240,9 +1242,9 @@ namespace UnityEngine.Rendering.Universal
             cmd.SetGlobalTexture("_AfterPostProcessTexture", m_ActiveCameraColorAttachment.id);
         }
 
-        public override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
+        public override RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd)
         {
-            return m_ColorBufferSystem.GetFrontBuffer(cmd,makeNew).id;
+            return m_ColorBufferSystem.GetFrontBuffer(cmd).id;
         }
 
         internal override void EnableSwapBufferMSAA(bool enable)

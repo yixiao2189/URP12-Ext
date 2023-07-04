@@ -126,46 +126,18 @@ namespace UnityEngine.Rendering.Universal.Internal
                     : new Vector4(flipSign, 0.0f, 1.0f, 1.0f);
                 cmd.SetGlobalVector(ShaderPropertyId.scaleBiasRt, scaleBias);
 
-	
 
+				ConfigureDepthStoreAction(RenderBufferStoreAction.DontCare);
 				context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
+	
 
-				if (normalOff)
-				{
-					cmd.EnableShaderKeyword("_NORMALMAP_OFF");
-				}
-				else
-				{
-					cmd.DisableShaderKeyword("_NORMALMAP_OFF");
-				}
-
-
-
-				if (envReflectionOff)
-				{
-					cmd.EnableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
-				}
-				else
-				{
-					cmd.DisableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
-				}
-
-
-				if (recvShadowOff)
-				{
-					cmd.EnableShaderKeyword("_RECEIVE_SHADOWS_OFF");
-				}
-				else
-				{
-					cmd.DisableShaderKeyword("_RECEIVE_SHADOWS_OFF");
-				}
-
-				//TODO:透明的
-				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, renderingData.cameraData.gammmaUICamera);
-		
-
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.NormalMapOff, normalOff);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.EnvReflectionOff, envReflectionOff);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.RecvShadowsOff, recvShadowOff);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,renderingData.cameraData.gammmaUICamera);
+                
 				Camera camera = renderingData.cameraData.camera;
                 var sortFlags = (m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 if (renderingData.cameraData.renderer.useDepthPriming && m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))

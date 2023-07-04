@@ -55,12 +55,57 @@ namespace UnityEngine.Rendering.Universal
 			}
 		}
 
+		public static UniversalRendererData GetRendererData(this Camera cam)
+		{
+			if (cam == null) return null;
+			var rp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+			if (rp == null)
+				return null;
+			var rCount = rp.GetRenderDataCount();
+			for (int i = 0; i < rCount; i++)
+			{
+				if (cam != null && rp.GetRenderer(i) != cam.GetUniversalAdditionalCameraData().scriptableRenderer)
+					continue;
+				var renderData = rp.GetRenderData<UniversalRendererData>(i);
+				if (renderData == null) continue;
+				return renderData;
+			}
+			return null;
+		}
+
+		public static UniversalRendererData GetRendererData(this UniversalAdditionalCameraData cam)
+		{
+			if (cam == null) return null;
+			var rp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+			if (rp == null)
+				return null;
+			var rCount = rp.GetRenderDataCount();
+			for (int i = 0; i < rCount; i++)
+			{
+				if (cam != null &&  cam.scriptableRenderer != rp.GetRenderer(i) )
+					continue;
+				var renderData = rp.GetRenderData<UniversalRendererData>(i);
+				if (renderData == null) continue;
+				return renderData;
+			}
+			return null;
+		}
+
 		static ScriptableRendererData[] GetRendererDataList(this UniversalRenderPipelineAsset asset)
 		{
 			var memberInfo = GetMember<UniversalRenderPipelineAsset>("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance);
 			if (memberInfo == null)
 				return null;
 			return (memberInfo as FieldInfo).GetValue(asset) as ScriptableRendererData[];
+		}
+
+		static void SetRendererDataList(this UniversalRenderPipelineAsset asset, ScriptableRendererData[] array)
+		{
+			var memberInfo = GetMember<UniversalRenderPipelineAsset>("m_RendererDataList", BindingFlags.NonPublic | BindingFlags.Instance);
+			if (memberInfo == null)
+				return ;
+			(memberInfo as FieldInfo).SetValue(asset, array);
+			asset.SetDirty();
 		}
 
 		public static int GetRenderDataCount(this UniversalRenderPipelineAsset asset)
@@ -107,23 +152,43 @@ namespace UnityEngine.Rendering.Universal
 			(memberInfo1 as PropertyInfo).SetValue(asset, enabled);
 		}
 
+		public static void SetClonedRenderer(this UniversalAdditionalCameraData camData,string name)
+		{
+			if (string.IsNullOrEmpty(name))
+				return;
+			var rp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+			if (rp == null) return;
+			camData.SetRenderer(name, true);
+			var renderData = camData.GetRendererData();
+			if (renderData == null) return;
+			if (renderData.name == name) return;
+
+	
+
+			var newRenderData = Object.Instantiate(renderData);
+			newRenderData.name = name;
+			var array = rp.GetRendererDataList();
+			System.Array.Resize(ref array,array.Length+1);
+			array[array.Length-1] = newRenderData;
+			rp.SetRendererDataList(array);
+			camData.SetRenderer(array.Length-1);
+		}
+
 
 		public static void SetRenderer(this UniversalAdditionalCameraData camData, string name,bool contain)
 		{
 			int index = 0;
 			var rp = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-			if (rp != null)
+			if (rp == null) return;
+			var rCount = rp.GetRenderDataCount();
+			for (int i = 0; i < rCount; i++)
 			{
-				var rCount = rp.GetRenderDataCount();
-				for (int i = 0; i < rCount; i++)
+				var renderData = rp.GetRenderData<ScriptableRendererData>(i);
+				if (renderData == null) continue;
+				if (contain && renderData.name.Contains(name) || !contain && renderData.name == name)
 				{
-					var renderData = rp.GetRenderData<ScriptableRendererData>(i);
-					if (renderData == null) continue;
-					if (contain && renderData.name.Contains(name) || !contain && renderData.name == name)
-					{
-						index = i;
-						break;
-					}						
+					index = i;
+					break;
 				}
 			}
 

@@ -50,7 +50,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                
 				if(cameraData.splitResolution)
 					RenderTargetBufferSystem.ApplyScale(ref cameraData);
-				RenderTargetIdentifier cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd, true);
+				RenderTargetIdentifier cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
 
 
 				cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, source);

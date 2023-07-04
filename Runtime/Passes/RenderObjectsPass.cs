@@ -30,7 +30,6 @@ namespace UnityEngine.Experimental.Rendering.Universal
             m_RenderStateBlock.depthState = new DepthState(writeEnabled, function);
         }
 
-		public bool clearDepth { get; set; }
 
         public void SetStencilState(int reference, CompareFunction compareFunction, StencilOp passOp, StencilOp failOp, StencilOp zFailOp)
         {
@@ -107,12 +106,9 @@ namespace UnityEngine.Experimental.Rendering.Universal
             // Currently there's an issue which results in mismatched markers.
             CommandBuffer cmd = CommandBufferPool.Get();
 
-            if (cameraData.gammmaUICamera)
-            {
-	            cmd.EnableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-	            cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
-            }
-            using (new ProfilingScope(cmd, m_ProfilingSampler))
+
+
+			using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
                 if (m_CameraSettings.overrideCamera)
                 {
@@ -134,38 +130,13 @@ namespace UnityEngine.Experimental.Rendering.Universal
                     }
                 }
 
-
-                if (normalOff)
-                {
-                    cmd.EnableShaderKeyword("_NORMALMAP_OFF");
-                }
-                else
-                {
-                    cmd.DisableShaderKeyword("_NORMALMAP_OFF");
-                }
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.NormalMapOff, normalOff);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.EnvReflectionOff, envReflectionOff);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.RecvShadowsOff, recvShadowOff);	
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, renderingData.cameraData.gammmaUICamera);
 
 
-
-                if (envReflectionOff)
-                {
-                    cmd.EnableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
-                }
-                else
-                {
-                    cmd.DisableShaderKeyword("_ENVIRONMENTREFLECTIONS_OFF");
-                }
-
-
-                if (recvShadowOff)
-                {
-                    cmd.EnableShaderKeyword("_RECEIVE_SHADOWS_OFF");
-                }
-                else
-                {
-                    cmd.DisableShaderKeyword("_RECEIVE_SHADOWS_OFF");
-                }
-
-                var activeDebugHandler = GetActiveDebugHandler(renderingData);
+				var activeDebugHandler = GetActiveDebugHandler(renderingData);
                 if (activeDebugHandler != null)
                 {
                     activeDebugHandler.DrawWithDebugRenderState(context, cmd, ref renderingData, ref drawingSettings, ref m_FilteringSettings, ref m_RenderStateBlock,
@@ -190,12 +161,7 @@ namespace UnityEngine.Experimental.Rendering.Universal
                     RenderingUtils.SetViewAndProjectionMatrices(cmd, cameraData.GetViewMatrix(), cameraData.GetGPUProjectionMatrix(), false);
                 }
             }
-		
-			if (clearDepth)
-			{
-				ConfigureClear(ClearFlag.Depth, Color.black);
-            }
-		
+
 			context.ExecuteCommandBuffer(cmd);
 
 

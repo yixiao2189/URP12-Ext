@@ -361,7 +361,7 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         /// <param name="cmd"></param>
         /// <returns></returns>
-        virtual public RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd,bool makeNew = false)
+        virtual public RenderTargetIdentifier GetCameraColorFrontBuffer(CommandBuffer cmd)
         {
             return 0;
         }

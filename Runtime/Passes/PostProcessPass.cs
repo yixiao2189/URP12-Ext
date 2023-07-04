@@ -572,11 +572,16 @@ namespace UnityEngine.Rendering.Universal.Internal
 
 						if (cameraData.renderType == CameraRenderType.Base && (cameraData.hasGammaUI || cameraData.splitResolution))
 						{
-							m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-							m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                            if (cameraData.hasGammaUI)
+                            {
+                                m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                                m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                            }
+		
+                            if(cameraData.splitResolution)
+                                RenderTargetBufferSystem.ApplyScale(ref cameraData);
 
-							RenderTargetBufferSystem.ApplyScale(ref cameraData);
-							cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd, true);
+							cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
 						}
 					}                    
 	
