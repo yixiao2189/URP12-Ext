@@ -13,6 +13,7 @@ namespace UnityEngine.Rendering.Universal
 				&& additionalCameraData.ColorSpaceUsage == ColorSpace.Gamma	&&
 				cameraData.renderType == CameraRenderType.Overlay;
 
+			cameraData.isUICamera = cameraData.renderType == CameraRenderType.Overlay && additionalCameraData.ColorSpaceUsage != ColorSpace.Uninitialized ;
 			cameraData.nextIsUI = nextIsUI;
 			cameraData.nextIsGamma = nextIsGamma;
 		

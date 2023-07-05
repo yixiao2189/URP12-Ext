@@ -249,6 +249,7 @@ namespace UnityEngine.Rendering.Universal
 
 		//for Custom
 		public bool gammmaUICamera;
+		public bool isUICamera;
 		public bool nextIsGamma;
 		public bool nextIsUI;
 		public bool splitResolution;

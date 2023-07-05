@@ -571,7 +571,7 @@ namespace UnityEngine.Rendering.Universal
             }
             else
             {
-                if (cameraData.splitResolution)
+                if (cameraData.splitResolution && cameraData.isUICamera)
                 { 
                     CreateFinalDepthTarget(context, ref renderingData.cameraData);
                     cameraTargetDescriptor.width = RenderTargetBufferSystem.m_Desc.width;
@@ -814,7 +814,7 @@ namespace UnityEngine.Rendering.Universal
                  ((renderingData.cameraData.imageScalingMode == ImageScalingMode.Upscaling) && (renderingData.cameraData.upscalingFilter != ImageUpscalingFilter.Linear)));
 
             
-            if (cameraData.gammmaUICamera)
+            if (cameraData.isUICamera)
             {
                 applyFinalPostProcessing = false;
             }
