@@ -249,8 +249,10 @@ namespace UnityEngine.Rendering.Universal
 
 		//for Custom
 		public bool gammmaUICamera;
-		public bool hasGammaUI;
+		public bool nextIsGamma;
+		public bool nextIsUI;
 		public bool splitResolution;
+		public bool nowSplit;
 	}
 
 	public struct ShadowData

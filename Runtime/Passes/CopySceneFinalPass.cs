@@ -36,7 +36,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 GetActiveDebugHandler(renderingData)?.UpdateShaderGlobalPropertiesForFinalValidationPass(cmd, ref cameraData, true);
 
-                if (cameraData.hasGammaUI)
+                if (cameraData.nextIsGamma)
                 {
                     CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, true);
                     CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, false);
@@ -64,7 +64,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
 				cameraData.renderer.SwapColorBuffer(cmd);
 
-                if (cameraData.hasGammaUI)
+                if (cameraData.nextIsGamma)
                 {
                     CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, false);
                     CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, false);

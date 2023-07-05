@@ -566,22 +566,25 @@ namespace UnityEngine.Rendering.Universal.Internal
                 // With camera stacking we not always resolve post to final screen as we might run post-processing in the middle of the stack.
                 if (m_UseSwapBuffer)
                 {
-					if (!m_ResolveToScreen)
+					if (!m_ResolveToScreen )
 					{
 						cameraTarget = targetDestination;
 
-						if (cameraData.renderType == CameraRenderType.Base && (cameraData.hasGammaUI || cameraData.splitResolution))
+						if (cameraData.nowSplit)
 						{
-                            if (cameraData.hasGammaUI)
-                            {
-                                m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-                                m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
-                            }
-		
-                            if(cameraData.splitResolution)
-                                RenderTargetBufferSystem.ApplyScale(ref cameraData);
+							if (!m_HasFinalPass)
+							{
+								if (cameraData.nextIsGamma)
+								{
+									m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+									m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+								}
 
-							cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+								if (cameraData.splitResolution)
+									RenderTargetBufferSystem.ApplyScale(ref cameraData);
+
+								cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+							}								
 						}
 					}                    
 	
@@ -1563,12 +1566,27 @@ namespace UnityEngine.Rendering.Universal.Internal
                 material.EnableKeyword(ShaderKeywordStrings.Fxaa);
             }
 
+       
             RenderTargetHandle cameraTargetHandle = RenderTargetHandle.GetCameraTarget(cameraData.xr);
+            RenderTargetIdentifier cameraTarget = cameraTargetHandle.Identifier();
+
+            if (cameraData.nowSplit)
+            {			
+                if (cameraData.splitResolution)
+                    RenderTargetBufferSystem.ApplyScale(ref cameraData);
+				
+				if (cameraData.nextIsGamma)
+				{
+					material.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+					material.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+				}
+				cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+            }
 
 #if ENABLE_VR && ENABLE_XR_MODULE
             if (cameraData.xr.enabled)
             {
-                RenderTargetIdentifier cameraTarget = cameraTargetHandle.Identifier();
+              
 
                 //Blit(cmd, m_Source.Identifier(), BuiltinRenderTextureType.CurrentActive, material);
                 bool isRenderToBackBufferTarget = cameraTarget == cameraData.xr.renderTarget && !cameraData.xr.renderTargetIsRenderTexture;
@@ -1590,7 +1608,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 // Note: We need to get the cameraData.targetTexture as this will get the targetTexture of the camera stack.
                 // Overlay cameras need to output to the target described in the base camera while doing camera stack.
-                RenderTargetIdentifier cameraTarget = (cameraData.targetTexture != null) ? new RenderTargetIdentifier(cameraData.targetTexture) : cameraTargetHandle.Identifier();
+                cameraTarget = (cameraData.targetTexture != null) ? new RenderTargetIdentifier(cameraData.targetTexture) : cameraTarget;
 
                 cmd.SetRenderTarget(cameraTarget, colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
                 cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
@@ -1599,6 +1617,11 @@ namespace UnityEngine.Rendering.Universal.Internal
                 cmd.SetViewProjectionMatrices(cameraData.camera.worldToCameraMatrix, cameraData.camera.projectionMatrix);
                 cameraData.renderer.ConfigureCameraTarget(cameraTarget, cameraTarget);
             }
+
+			if (cameraTarget != BuiltinRenderTextureType.CameraTarget)
+			{
+				cameraData.renderer.SwapColorBuffer(cmd);
+			}
 
             if (isUpscaledTextureUsed)
             {

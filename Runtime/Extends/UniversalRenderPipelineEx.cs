@@ -4,7 +4,7 @@ namespace UnityEngine.Rendering.Universal
 {
     public partial class UniversalRenderPipeline
     {
-	    private static void InitializeAdditionalCameraDataEx(UniversalAdditionalCameraData additionalCameraData, bool hasGammaUI,ref CameraData cameraData)
+	    private static void InitializeAdditionalCameraDataEx(UniversalAdditionalCameraData additionalCameraData, bool nextIsUI, bool nextIsGamma,ref CameraData cameraData)
         {
 			if (additionalCameraData == null)
 				return;
@@ -13,9 +13,12 @@ namespace UnityEngine.Rendering.Universal
 				&& additionalCameraData.ColorSpaceUsage == ColorSpace.Gamma	&&
 				cameraData.renderType == CameraRenderType.Overlay;
 
-			cameraData.hasGammaUI = hasGammaUI && cameraData.renderType == CameraRenderType.Base;
+			cameraData.nextIsUI = nextIsUI;
+			cameraData.nextIsGamma = nextIsGamma;
+		
 
 			cameraData.splitResolution = cameraData.targetTexture == null && !cameraData.isSceneViewCamera && cameraData.renderScale < RenderTargetBufferSystem.overlayMinScale;
+			cameraData.nowSplit = cameraData.splitResolution && cameraData.nextIsUI || nextIsGamma;
 		}
 
     }

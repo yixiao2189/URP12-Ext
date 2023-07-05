@@ -137,7 +137,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.EnvReflectionOff, envReflectionOff);
 				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.RecvShadowsOff, recvShadowOff);
 				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,renderingData.cameraData.gammmaUICamera);
-                
+
 				Camera camera = renderingData.cameraData.camera;
                 var sortFlags = (m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 if (renderingData.cameraData.renderer.useDepthPriming && m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
