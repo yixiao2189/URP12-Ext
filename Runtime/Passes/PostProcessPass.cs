@@ -1612,7 +1612,8 @@ namespace UnityEngine.Rendering.Universal.Internal
 
                 cmd.SetRenderTarget(cameraTarget, colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
                 cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
-                cmd.SetViewport(cameraData.pixelRect);
+                if (cameraTarget == BuiltinRenderTextureType.CameraTarget)
+                    cmd.SetViewport(cameraData.pixelRect);
                 cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, material);
                 cmd.SetViewProjectionMatrices(cameraData.camera.worldToCameraMatrix, cameraData.camera.projectionMatrix);
                 cameraData.renderer.ConfigureCameraTarget(cameraTarget, cameraTarget);
