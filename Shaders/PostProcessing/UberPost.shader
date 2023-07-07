@@ -10,6 +10,7 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         #pragma multi_compile_local_fragment _ _DITHERING
         #pragma multi_compile_local_fragment _ _GAMMA_20 _LINEAR_TO_SRGB_CONVERSION _SRGB_TO_LINEAR_CONVERSION
         #pragma multi_compile_local_fragment _ _USE_FAST_SRGB_LINEAR_CONVERSION
+        #pragma multi_compile_local_fragment _ _FXAA
         #pragma multi_compile _ _USE_DRAW_PROCEDURAL
         #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
@@ -35,6 +36,7 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         TEXTURE2D(_UserLut);
         TEXTURE2D(_BlueNoise_Texture);
 
+        float4 _SourceSize;
         float4 _Lut_Params;
         float4 _UserLut_Params;
         float4 _Bloom_Params;
@@ -146,6 +148,13 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
             #if UNITY_COLORSPACE_GAMMA
             {
                 color = GetSRGBToLinear(color);
+            }
+            #endif
+
+            #if _FXAA
+            {   
+                int2   positionSS  = uv * _SourceSize.xy;
+                color = ApplyFXAA(color, uv, positionSS, _SourceSize, _SourceTex);
             }
             #endif
 

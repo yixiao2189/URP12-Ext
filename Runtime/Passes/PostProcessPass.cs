@@ -563,43 +563,125 @@ namespace UnityEngine.Rendering.Universal.Internal
                 RenderTargetHandle cameraTargetHandle = RenderTargetHandle.GetCameraTarget(cameraData.xr);
                 RenderTargetIdentifier cameraTarget = (cameraData.targetTexture != null && !cameraData.xr.enabled) ? new RenderTargetIdentifier(cameraData.targetTexture) : cameraTargetHandle.Identifier();
 
+                Material material = m_Materials.uber;
                 // With camera stacking we not always resolve post to final screen as we might run post-processing in the middle of the stack.
                 if (m_UseSwapBuffer)
                 {
-					if (!m_ResolveToScreen )
-					{
-						cameraTarget = targetDestination;
+                    if (!m_ResolveToScreen)
+                    {
+                        cameraTarget = targetDestination;
 
-						if (cameraData.nowSplit)
-						{
-							if (!m_HasFinalPass)
-							{
-								if (cameraData.nextIsGamma)
-								{
-									m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-									m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
-								}
+                        if (cameraData.nowSplit)
+                        {
+                            if (!m_HasFinalPass)
+                            {
+                                if (cameraData.nextIsGamma)
+                                {
+                                    m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                                    m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                                }
 
-								if (cameraData.splitResolution)
-									RenderTargetBufferSystem.ApplyScale(ref cameraData);
+                                if (cameraData.splitResolution)
+                                    RenderTargetBufferSystem.ApplyScale(ref cameraData);
 
-								cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
-							}								
-						}
-					}                    
-	
-				}
+                                cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+
+                                /*
+                                PostProcessUtils.SetSourceSize(cmd, cameraData.cameraTargetDescriptor);
+                                m_Materials.uber.EnableKeyword(ShaderKeywordStrings.Fxaa);
+                                */
+                            }
+                            else
+                            {
+                                bool isFxaaEnabled = (cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing);
+                                if (isFxaaEnabled)
+                                {
+                                    PostProcessUtils.SetSourceSize(cmd, cameraData.cameraTargetDescriptor);
+                                    m_Materials.uber.EnableKeyword(ShaderKeywordStrings.Fxaa);
+                                }
+                        
+
+                                bool fsr = !m_hasExternalPostPasses &&
+                                                cameraData.imageScalingMode == ImageScalingMode.Upscaling && cameraData.upscalingFilter == ImageUpscalingFilter.FSR;
+                                if (fsr)
+                                    m_Materials.uber.EnableKeyword(ShaderKeywordStrings.Gamma20);
+                                else if (cameraData.nextIsGamma)
+                                {
+                                    m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                                    m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                                }
+
+                                if (fsr)
+                                {
+                                    Blit(cmd, source, destination, m_Materials.uber);
+
+                                    Swap(ref renderer);
+                                }
+    
+
+                                if (cameraData.splitResolution || fsr)
+                                {
+                                    RenderTargetBufferSystem.ApplyScale(ref cameraData);
+                                    cameraTarget = destination = renderer.GetCameraColorFrontBuffer(cmd);
+                                }
+                 
+
+
+                                if (fsr)
+                                {
+                                    var fsrInputSize = new Vector2(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
+                                    var fsrOutputSize = new Vector2(cameraData.pixelWidth, cameraData.pixelHeight);
+
+
+
+                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, source);
+
+
+                                    FSRUtils.SetEasuConstants(cmd, fsrInputSize, fsrInputSize, fsrOutputSize);
+
+                                    Blit(cmd, source, destination, m_Materials.easu);
+
+
+                                    material = m_Materials.finalPass;
+                                    material.shaderKeywords = null;
+                                    // RCAS
+                                    // Use the override value if it's available, otherwise use the default.
+                                    float sharpness = cameraData.fsrOverrideSharpness ? cameraData.fsrSharpness : FSRUtils.kDefaultSharpnessLinear;
+
+                                    // Set up the parameters for the RCAS pass unless the sharpness value indicates that it wont have any effect.
+                                    if (cameraData.fsrSharpness > 0.0f)
+                                    {
+                                        // RCAS is performed during the final post blit, but we set up the parameters here for better logical grouping.
+                                        material.EnableKeyword(ShaderKeywordStrings.Rcas);
+                                        FSRUtils.SetRcasConstantsLinear(cmd, sharpness);
+                                    }
+
+                                    // Update the source texture for the next operation
+                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
+                                    renderer.SwapColorBuffer(cmd);
+                                    cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+
+                                    if (cameraData.nextIsUI && !cameraData.nextIsGamma)
+                                    {
+                                        material.EnableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                                    }
+                                }                              
+                            }
+                        }
+                    }
+
+                }
                 else
                 {
                     cameraTarget = (m_Destination == RenderTargetHandle.CameraTarget) ? cameraTarget : m_Destination.Identifier();
                     m_ResolveToScreen = cameraData.resolveFinalTarget || (m_Destination == cameraTargetHandle || m_HasFinalPass == true);
                 }
 
-				if (m_ResolveToScreen && cameraData.gammmaUICamera)
-				{
-					m_Materials.uber.DisableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-					m_Materials.uber.EnableKeyword(ShaderKeywordStrings.SRGBToLinearConversion); 
-				}
+                if (m_ResolveToScreen && cameraData.gammmaUICamera)
+                {
+                    material.DisableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                    material.EnableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                }
 
 #if ENABLE_VR && ENABLE_XR_MODULE
                 if (cameraData.xr.enabled)
@@ -628,7 +710,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                         cmd.SetRenderTarget(new RenderTargetIdentifier(m_Source, 0, CubemapFace.Unknown, -1),
                             colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
 
-                        scaleBias = new Vector4(1, 1, 0, 0);;
+                        scaleBias = new Vector4(1, 1, 0, 0); ;
                         cmd.SetGlobalVector(ShaderPropertyId.scaleBias, scaleBias);
                         cmd.DrawProcedural(Matrix4x4.identity, m_BlitMaterial, 0, MeshTopology.Quads, 4, 1, null);
                     }
@@ -643,7 +725,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     if ((m_Destination == RenderTargetHandle.CameraTarget && !m_UseSwapBuffer) || (m_ResolveToScreen && m_UseSwapBuffer))
                         cmd.SetViewport(cameraData.pixelRect);
 
-                    cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_Materials.uber);
+                    cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, material);
 
                     // TODO: Implement swapbuffer in 2DRenderer so we can remove this
                     // For now, when render post-processing in the middle of the camera stack (not resolving to screen)
@@ -676,6 +758,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
                 cmd.ReleaseTemporaryRT(m_InternalLut.id);
             }
+
         }
 
         private BuiltinRenderTextureType BlitDstDiscardContent(CommandBuffer cmd, RenderTargetIdentifier rt)
@@ -1702,7 +1785,7 @@ namespace UnityEngine.Rendering.Universal.Internal
         }
 
         // Precomputed shader ids to same some CPU cycles (mostly affects mobile)
-        static class ShaderConstants
+        public static class ShaderConstants
         {
             public static readonly int _TempTarget = Shader.PropertyToID("_TempTarget");
             public static readonly int _TempTarget2 = Shader.PropertyToID("_TempTarget2");
