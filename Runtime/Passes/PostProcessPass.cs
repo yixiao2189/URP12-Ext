@@ -578,21 +578,16 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 if (cameraData.nextIsGamma)
                                 {
                                     m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-                                    m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
                                 }
 
                                 if (cameraData.splitResolution)
                                     RenderTargetBufferSystem.ApplyScale(ref cameraData);
 
                                 cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
-
-                                /*
-                                PostProcessUtils.SetSourceSize(cmd, cameraData.cameraTargetDescriptor);
-                                m_Materials.uber.EnableKeyword(ShaderKeywordStrings.Fxaa);
-                                */
                             }
                             else
                             {
+
                                 bool isFxaaEnabled = (cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing);
                                 if (isFxaaEnabled)
                                 {
@@ -608,13 +603,11 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 else if (cameraData.nextIsGamma)
                                 {
                                     m_Materials.uber.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
-                                    m_Materials.uber.DisableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
                                 }
 
                                 if (fsr)
                                 {
                                     Blit(cmd, source, destination, m_Materials.uber);
-
                                     Swap(ref renderer);
                                 }
     
@@ -623,24 +616,17 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 {
                                     RenderTargetBufferSystem.ApplyScale(ref cameraData);
                                     cameraTarget = destination = renderer.GetCameraColorFrontBuffer(cmd);
-                                }
-                 
+                                }                 
 
 
                                 if (fsr)
                                 {
                                     var fsrInputSize = new Vector2(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
                                     var fsrOutputSize = new Vector2(cameraData.pixelWidth, cameraData.pixelHeight);
-
-
-
-                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, source);
-
-
                                     FSRUtils.SetEasuConstants(cmd, fsrInputSize, fsrInputSize, fsrOutputSize);
 
+                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, source);                                 
                                     Blit(cmd, source, destination, m_Materials.easu);
-
 
                                     material = m_Materials.finalPass;
                                     material.shaderKeywords = null;
@@ -657,14 +643,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                                     }
 
                                     // Update the source texture for the next operation
-                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
-                                    renderer.SwapColorBuffer(cmd);
-                                    cameraTarget = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
+                                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, destination);                                    
+                                    PostProcessUtils.SetSourceSize(cmd, RenderTargetBufferSystem.m_Desc);
+                                    Swap(ref renderer);
+                                    cameraTarget = destination = cameraData.renderer.GetCameraColorFrontBuffer(cmd);
 
-                                    if (cameraData.nextIsUI && !cameraData.nextIsGamma)
-                                    {
-                                        material.EnableKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
-                                    }
+                                    if(cameraData.nextIsGamma)
+                                        material.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
                                 }                              
                             }
                         }

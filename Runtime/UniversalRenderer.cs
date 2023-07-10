@@ -813,7 +813,7 @@ namespace UnityEngine.Rendering.Universal
                 ((renderingData.cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing) ||
                  ((renderingData.cameraData.imageScalingMode == ImageScalingMode.Upscaling) && (renderingData.cameraData.upscalingFilter == ImageUpscalingFilter.FSR)));
 
-            
+
             if (cameraData.isUICamera)
             {
                 applyFinalPostProcessing = false;
@@ -890,17 +890,9 @@ namespace UnityEngine.Rendering.Universal
             }
             // stay in RT so we resume rendering on stack after post-processing
             else if (applyPostProcessing)
-            {
-                 
+            {                 
                 postProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, false, m_ActiveCameraDepthAttachment, colorGradingLut, applyFinalPostProcessing, false, !cameraData.nextIsUI);
                 EnqueuePass(postProcessPass);
-
-                if (applyFinalPostProcessing && cameraData.nextIsUI && false)
-                {
-                    finalPostProcessPass.SetupFinalPass(m_ActiveCameraColorAttachment, true, hasPassesAfterPostProcessing);
-
-                    EnqueuePass(finalPostProcessPass);
-                }
             }
             else if (cameraData.nowSplit)
             {
