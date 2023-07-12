@@ -416,7 +416,6 @@ namespace UnityEngine.Rendering.Universal
             }
 
 			// Assign the camera color target early in case it is needed during AddRenderPasses.
-			bool isRenderTargetNull = cameraData.targetTexture == null;
 			bool isPreviewCamera = cameraData.isPreviewCamera;
 	
             var createColorTexture = (rendererFeatures.Count != 0 && m_IntermediateTextureMode == IntermediateTextureMode.Always) && !isPreviewCamera;
