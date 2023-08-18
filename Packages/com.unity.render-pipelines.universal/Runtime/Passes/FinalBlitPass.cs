@@ -57,10 +57,14 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 GetActiveDebugHandler(renderingData)?.UpdateShaderGlobalPropertiesForFinalValidationPass(cmd, ref cameraData, true);
 
-                CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,
-                    cameraData.requireSrgbConversion);
+				if (cameraData.gammmaUICamera)
+				{
+					CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, false);
+					CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, true);
+				}
 
-                cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source);
+
+				cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source);
 
 #if ENABLE_VR && ENABLE_XR_MODULE
                 if (cameraData.xr.enabled)
@@ -120,8 +124,12 @@ namespace UnityEngine.Rendering.Universal.Internal
                     cameraData.renderer.ConfigureCameraTarget(cameraTarget, cameraTarget);
                 }
             }
-
-            context.ExecuteCommandBuffer(cmd);
+			if (cameraData.gammmaUICamera)
+			{
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion, false);
+				CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.SRGBToLinearConversion, false);
+			}
+			context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
     }

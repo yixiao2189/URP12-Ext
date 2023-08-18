@@ -223,7 +223,6 @@ namespace UnityEditor.Rendering.Universal
             static void DrawerRenderingPriority(UniversalRenderPipelineSerializedCamera p, Editor owner)
             {
                 EditorGUILayout.PropertyField(p.baseCameraSettings.depth, Styles.priority);
-                
             }
 
             static void DrawerRenderingDepthTexture(UniversalRenderPipelineSerializedCamera p, Editor owner)

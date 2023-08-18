@@ -9,12 +9,17 @@ using ConsoleGUI;
 public class GUIShow : MonoBehaviour
 {
 
+    public enum AAMode
+    {
+        None,  
+        FXAA,
+        SMAA,
+    }
 
-
+    public UniversalAdditionalCameraData mainCameraData;
+    public UniversalAdditionalCameraData uiCameraData;
 
     UniversalRenderPipelineAsset rp;
-    float renderScale = 1f;
-    bool isGamma = false;
 
     ConsoleStyle _consoleStyle = new ConsoleStyle();
 
@@ -31,34 +36,46 @@ public class GUIShow : MonoBehaviour
 
         if (_consoleStyle != null)
             _consoleStyle.Update();
-        GUILayout.Window(1, _consoleStyle.optTopCenterWindowRect, DrawWindow, "");
+        GUILayout.Window(1, _consoleStyle.optTopLeftWindowRect, DrawWindow, "");
     }
 
     void DrawWindow(int id)
     {
 
-        GUILayout.Label($"Scale:{rp.renderScale.ToString("f2")}");
-        var tmpScale = GUILayout.HorizontalSlider( renderScale, 0.1f, 2f);
-        if (tmpScale != renderScale)
+        GUILayout.Label($"RenderScale:{rp.renderScale.ToString("f2")}");
+
+        float newRenderScale = GUILayout.HorizontalSlider(rp.renderScale, 0.5f, 1.2f);
+        if (newRenderScale != rp.renderScale)
         {
-            renderScale = tmpScale;
-            rp.renderScale = tmpScale;
+            rp.renderScale = newRenderScale;
         }
 
+        GUILayout.Space(10);
+
+ 
+        uiCameraData.ColorSpaceUsage = _consoleStyle.DrawEnum(uiCameraData.ColorSpaceUsage);
+
+        uiCameraData.renderPostProcessing = uiCameraData.ColorSpaceUsage == ColorSpace.Uninitialized && mainCameraData.renderPostProcessing;
+
+        var newPost = _consoleStyle.DrawToggle(mainCameraData.renderPostProcessing, mainCameraData.renderPostProcessing ?"Post" : "NoPost");
+        if (newPost != mainCameraData.renderPostProcessing)
+        {
+            mainCameraData.renderPostProcessing = newPost;
+        }
 
      
+        mainCameraData.antialiasing =(AntialiasingMode) _consoleStyle.DrawEnum((AAMode)mainCameraData.antialiasing);
+   
 
-        var newGamma = _consoleStyle.DrawToggle(isGamma, isGamma ? "Linear" : "Gamma");
-        if (newGamma != isGamma)
+
+        bool fsr = rp.upscalingFilter == UpscalingFilterSelection.FSR;
+        var newFsr = _consoleStyle.DrawToggle(fsr, fsr ? "FSR" : "NoFSR");
+        if (newFsr != fsr)
         {
-            isGamma = newGamma;
-
-            var array = FindObjectsOfType<UniversalAdditionalCameraData>();
-            foreach (var cd in array)
-            {
-                cd.ColorSpaceUsage = isGamma ? ColorSpace.Gamma : ColorSpace.Linear;
-            }
+            rp.upscalingFilter = newFsr ? UpscalingFilterSelection.FSR : UpscalingFilterSelection.Auto;
         }
+
+        GUILayout.Label($"FSR Supported : {FSRUtils.IsSupported()}");
     }
 
 }

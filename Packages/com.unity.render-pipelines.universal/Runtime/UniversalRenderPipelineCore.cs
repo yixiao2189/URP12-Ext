@@ -246,11 +246,17 @@ namespace UnityEngine.Rendering.Universal
         /// Camera position in world space.
         /// </summary>
         public Vector3 worldSpaceCameraPos;
-        
-        public CameraDataEx exData; 
-    }
 
-    public struct ShadowData
+		//for Custom
+		public bool gammmaUICamera;
+		public bool isUICamera;
+		public bool nextIsGamma;
+		public bool nextIsUI;
+		public bool splitResolution;
+		public bool nowSplit;
+	}
+
+	public struct ShadowData
     {
         public bool supportsMainLightShadows;
         [Obsolete("Obsolete, this feature was replaced by new 'ScreenSpaceShadows' renderer feature")]

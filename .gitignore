@@ -74,3 +74,6 @@ crashlytics-build.properties
 /Packages/com.unity.render-pipelines.universal/Tests.meta
 /Packages/com.unity.render-pipelines.universal/Documentation~/
 /Packages/com.unity.render-pipelines.universal/Samples~/
+/Builded/
+Builded_BurstDebugInformation_DoNotShip/StaticLibraries/lib_burst_generated64.txt
+/Old/

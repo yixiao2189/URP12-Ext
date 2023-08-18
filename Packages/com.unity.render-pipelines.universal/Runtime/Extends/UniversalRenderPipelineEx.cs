@@ -1,18 +1,26 @@
-﻿namespace UnityEngine.Rendering.Universal
+using UnityEngine.Rendering.Universal.Internal;
+
+namespace UnityEngine.Rendering.Universal
 {
     public partial class UniversalRenderPipeline
     {
-	    private static void InitialCameraDataEx(UniversalAdditionalCameraData additionalCameraData, ref CameraData cameraData)
+	    private static void InitializeAdditionalCameraDataEx(UniversalAdditionalCameraData additionalCameraData, bool nextIsUI, bool nextIsGamma,ref CameraData cameraData)
         {
-            InitialCameraDataFsr(additionalCameraData, ref cameraData);
-        }
+			if (additionalCameraData == null)
+				return;
 
-        private static void InitialCameraDataFsr(UniversalAdditionalCameraData additionalCameraData, ref CameraData cameraData)
-        {
-            if (additionalCameraData != null)
-            {
-                cameraData.exData.colorSpaceUsage = additionalCameraData.ColorSpaceUsage;
-            }
-        }
+			cameraData.gammmaUICamera = QualitySettings.activeColorSpace == ColorSpace.Linear 
+				&& additionalCameraData.ColorSpaceUsage == ColorSpace.Gamma	&&
+				cameraData.renderType == CameraRenderType.Overlay;
+
+			cameraData.isUICamera = cameraData.renderType == CameraRenderType.Overlay && additionalCameraData.ColorSpaceUsage != ColorSpace.Uninitialized ;
+			cameraData.nextIsUI = nextIsUI;
+			cameraData.nextIsGamma = nextIsGamma;
+		
+
+			cameraData.splitResolution = cameraData.targetTexture == null && !cameraData.isSceneViewCamera && cameraData.renderScale < RenderTargetBufferSystem.overlayMinScale;
+			cameraData.nowSplit = cameraData.splitResolution && cameraData.nextIsUI || nextIsGamma;
+		}
+
     }
 }

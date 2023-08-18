@@ -15,8 +15,9 @@ namespace ConsoleGUI
 		// 操作窗口矩形
 
 		private Rect _optTopCenterWindowRect;
+        private Rect _optTopLeftCenterWindowRect;
 
-		private GUIStyle _btnToggleOffStyle = null;
+        private GUIStyle _btnToggleOffStyle = null;
 
 
 
@@ -28,7 +29,9 @@ namespace ConsoleGUI
 
 
 		public Rect optTopCenterWindowRect => _optTopCenterWindowRect;
-
+        public Rect optTopLeftWindowRect => _optTopLeftCenterWindowRect;
+        
+		
 		private int _lastScreenWidth = 0;
 		private int _lastScreenHeight = 0;
 		public void Update()
@@ -47,10 +50,14 @@ namespace ConsoleGUI
 			var screenHeight = Screen.height;
 
 			_optTopCenterWindowRect = new Rect(Vector2.zero, new Vector2(screenWidth / 8, screenHeight / 10));
-			_optTopCenterWindowRect.center = new Vector2(screenWidth / 3, screenHeight / 20);
+			_optTopCenterWindowRect.center = new Vector2(screenWidth / 6, screenHeight / 20);
 
 
-			float heightScale = screenHeight * 1.0f / 720;
+            _optTopLeftCenterWindowRect = new Rect(Vector2.zero, new Vector2(screenWidth / 6, screenHeight / 10));
+            _optTopLeftCenterWindowRect.center = new Vector2(screenWidth / 10+2, screenHeight / 20);
+
+
+            float heightScale = screenHeight * 1.0f / 720;
 			_childControlHeight = Mathf.FloorToInt(_childControlHeight * heightScale);
 			_childControlWidth = screenWidth / 6;
 
@@ -80,6 +87,18 @@ namespace ConsoleGUI
                 toggle = !toggle;
             }
             return toggle;
+        }
+
+		public T DrawEnum<T>(T value) where T : System.Enum
+		{		
+            if (GUILayout.Button(value.ToString(), GUILayout.MaxWidth(childWidth), GUILayout.MaxHeight(childHeight)))
+            {
+                var array = System.Enum.GetValues(value.GetType());
+				int index = System.Array.LastIndexOf(array, value);
+				index = (index+1) % array.Length;
+                return (T)array.GetValue(index);
+            }
+			return value;
         }
     }
 

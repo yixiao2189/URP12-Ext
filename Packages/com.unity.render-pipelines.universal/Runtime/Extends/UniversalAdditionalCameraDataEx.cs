@@ -1,9 +1,9 @@
-﻿namespace UnityEngine.Rendering.Universal
+namespace UnityEngine.Rendering.Universal
 {
 	public partial class UniversalAdditionalCameraData
 	{
 		[SerializeField] 
-		private ColorSpace m_ColorSpaceUsage = ColorSpace.Linear;
+		private ColorSpace m_ColorSpaceUsage = ColorSpace.Uninitialized;
 
 		public ColorSpace ColorSpaceUsage
 		{

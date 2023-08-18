@@ -20,7 +20,7 @@ namespace UnityEngine.Rendering.Universal.Internal
         SwapBuffer m_A, m_B;
         static bool m_AisBackBuffer = true;
 
-        static RenderTextureDescriptor m_Desc;
+        public static RenderTextureDescriptor m_Desc;
         FilterMode m_FilterMode;
         bool m_AllowMSAA = true;
         bool m_RTisAllocated = false;
@@ -38,11 +38,14 @@ namespace UnityEngine.Rendering.Universal.Internal
 
 		public static void ApplyScale(ref CameraData cameraData)
 		{
-			m_Desc.width =  (int)(cameraData.pixelRect.width * Mathf.Max(cameraData.renderScale, overlayMinScale));
-			m_Desc.height =(int)(cameraData.pixelRect.height * Mathf.Max(cameraData.renderScale, overlayMinScale));
-	
-
-			m_needUpdateA = true;
+			int width = (int)(cameraData.pixelRect.width * Mathf.Max(cameraData.renderScale, overlayMinScale));
+			int height = (int)(cameraData.pixelRect.height * Mathf.Max(cameraData.renderScale, overlayMinScale));
+			if (width == m_Desc.width && m_Desc.height == height)
+				return;
+			m_Desc.width = width;
+			m_Desc.height = height;
+         
+            m_needUpdateA = true;
 			m_needUpdateB = true;
 		}
 
@@ -94,52 +97,50 @@ namespace UnityEngine.Rendering.Universal.Internal
             return backBuffer.rt;
         }
 
-        public RenderTargetHandle GetFrontBuffer(CommandBuffer cmd,bool makeNew)
+        public RenderTargetHandle GetFrontBuffer(CommandBuffer cmd)
         {
             if (!m_RTisAllocated)
                 Initialize(cmd);
 
-			if (makeNew)
-			{
-				int pipelineMSAA = m_Desc.msaaSamples;
-				int bufferMSAA = frontBuffer.msaa;
+            int pipelineMSAA = m_Desc.msaaSamples;
+            int bufferMSAA = frontBuffer.msaa;
 
-				if (m_AllowMSAA && bufferMSAA != pipelineMSAA)
-				{
-					//We don't want a depth buffer on B buffer
-					var desc = m_Desc;
-					if (m_AisBackBuffer)
-						desc.depthBufferBits = 0;
+            if (m_AllowMSAA && bufferMSAA != pipelineMSAA)
+            {
+                //We don't want a depth buffer on B buffer
+                var desc = m_Desc;
+                if (m_AisBackBuffer)
+                    desc.depthBufferBits = 0;
 
-					cmd.ReleaseTemporaryRT(frontBuffer.name);
-					cmd.GetTemporaryRT(frontBuffer.name, desc, m_FilterMode);
+                cmd.ReleaseTemporaryRT(frontBuffer.name);
+                cmd.GetTemporaryRT(frontBuffer.name, desc, m_FilterMode);
 
-					if (m_AisBackBuffer)
-						m_B.msaa = desc.msaaSamples;
-					else m_A.msaa = desc.msaaSamples;
-				}
-				else if (!m_AllowMSAA && bufferMSAA > 1)
-				{
-					//We don't want a depth buffer on B buffer
-					var desc = m_Desc;
-					desc.msaaSamples = 1;
-					if (m_AisBackBuffer)
-						desc.depthBufferBits = 0;
+                if (m_AisBackBuffer)
+                    m_B.msaa = desc.msaaSamples;
+                else m_A.msaa = desc.msaaSamples;
+            }
+            else if (!m_AllowMSAA && bufferMSAA > 1)
+            {
+                //We don't want a depth buffer on B buffer
+                var desc = m_Desc;
+                desc.msaaSamples = 1;
+                if (m_AisBackBuffer)
+                    desc.depthBufferBits = 0;
 
-					cmd.ReleaseTemporaryRT(frontBuffer.name);
-					cmd.GetTemporaryRT(frontBuffer.name, desc, m_FilterMode);
+                cmd.ReleaseTemporaryRT(frontBuffer.name);
+                cmd.GetTemporaryRT(frontBuffer.name, desc, m_FilterMode);
 
-					if (m_AisBackBuffer)
-						m_B.msaa = desc.msaaSamples;
-					else m_A.msaa = desc.msaaSamples;
-				} else if (needUpdateFront)
-				{
-					cmd.ReleaseTemporaryRT(frontBuffer.name);
-					cmd.GetTemporaryRT(frontBuffer.name, m_Desc, m_FilterMode);
-				}
+                if (m_AisBackBuffer)
+                    m_B.msaa = desc.msaaSamples;
+                else m_A.msaa = desc.msaaSamples;
+            }
+            else if (needUpdateFront)
+            {
+                cmd.ReleaseTemporaryRT(frontBuffer.name);
+                cmd.GetTemporaryRT(frontBuffer.name, m_Desc, m_FilterMode);
+            }
 
-				needUpdateFront = false;
-			}
+            needUpdateFront = false;
 
             return frontBuffer.rt;
         }
@@ -160,7 +161,10 @@ namespace UnityEngine.Rendering.Universal.Internal
             cmd.GetTemporaryRT(m_B.name, descB, m_FilterMode);
 
             m_RTisAllocated = true;
-        }
+
+			m_needUpdateA = false;
+			m_needUpdateB = false;
+		}
 
         public void Clear(CommandBuffer cmd)
         {
@@ -180,7 +184,6 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             m_Desc = desc;
             m_FilterMode = filterMode;
-
             Initialize(cmd);
         }
 

@@ -34,12 +34,6 @@ namespace UnityEngine.Rendering.Universal
         internal RenderTargetHandle afterPostProcessColorHandle { get => m_PostProcessPasses.afterPostProcessColor; }
         internal RenderTargetHandle colorGradingLutHandle { get => m_PostProcessPasses.colorGradingLut; }
 
-        /// <inheritdoc/>
-        public override int SupportedCameraStackingTypes()
-        {
-            return 1 << (int)CameraRenderType.Base | 1 << (int)CameraRenderType.Overlay;
-        }
-
         public Renderer2D(Renderer2DData data) : base(data)
         {
             m_BlitMaterial = CoreUtils.CreateEngineMaterial(data.blitShader);
@@ -62,7 +56,10 @@ namespace UnityEngine.Rendering.Universal
 
             m_Renderer2DData = data;
 
-            supportedRenderingFeatures = new RenderingFeatures();
+            supportedRenderingFeatures = new RenderingFeatures()
+            {
+                cameraStacking = true,
+            };
 
             m_LightCullResult = new Light2DCullResult();
             m_Renderer2DData.lightCullResult = m_LightCullResult;
@@ -258,7 +255,7 @@ namespace UnityEngine.Rendering.Universal
 
             if (requireFinalPostProcessPass && m_PostProcessPasses.isCreated)
             {
-                finalPostProcessPass.SetupFinalPass(colorTargetHandle, hasPassesAfterPostProcessing, false);
+                finalPostProcessPass.SetupFinalPass(colorTargetHandle, hasPassesAfterPostProcessing);
                 EnqueuePass(finalPostProcessPass);
             }
             else if (lastCameraInStack && colorTargetHandle != RenderTargetHandle.CameraTarget)
