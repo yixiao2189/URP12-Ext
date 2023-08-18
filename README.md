@@ -15,7 +15,7 @@ Overlay-UICamera 【Gamma空间 renderScale 1】
 
 特性1：
 
-同时能够在UICamera相机之前，处理fsr fxaa等后处理。
+fsr fxaa等finalPost时机移到UICamera相机之前。
 
 1 避免抗抗锯齿影响UI效果。
 
